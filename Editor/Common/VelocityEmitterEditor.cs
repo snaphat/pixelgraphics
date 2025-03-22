@@ -105,7 +105,7 @@ namespace Aarthificial.PixelGraphics.Editor.Common
             return layer;
         }
 
-        private static bool TryGetRendererData(out ForwardRendererData data)
+        private static bool TryGetRendererData(out UniversalRendererData data)
         {
             if (!(GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset pipeline))
             {
@@ -117,7 +117,7 @@ namespace Aarthificial.PixelGraphics.Editor.Common
                     "scriptableRendererData",
                     BindingFlags.Instance | BindingFlags.NonPublic
                 )
-                ?.GetValue(pipeline) as ForwardRendererData;
+                ?.GetValue(pipeline) as UniversalRendererData;
 
             return data != null;
         }

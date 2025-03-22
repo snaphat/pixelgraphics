@@ -11,8 +11,10 @@ namespace Aarthificial.PixelGraphics.Forward
     {
         private readonly List<ShaderTagId> _shaderTagIdList = new List<ShaderTagId>();
         private readonly ProfilingSampler _profilingSampler;
-        private readonly RenderTargetHandle _temporaryVelocityTarget;
-        private readonly RenderTargetHandle _velocityTarget;
+        private readonly RTHandle  _temporaryVelocityTarget;
+        private readonly RTHandle  _velocityTarget;
+        private readonly int _temporaryVelocityTargetId;
+        private readonly int _velocityTargetId;
         private readonly Material _emitterMaterial;
         private readonly Material _blitMaterial;
 
@@ -26,8 +28,11 @@ namespace Aarthificial.PixelGraphics.Forward
             _emitterMaterial = emitterMaterial;
             _blitMaterial = blitMaterial;
 
-            _temporaryVelocityTarget.Init("_PG_TemporaryVelocityTextureTarget");
-            _velocityTarget.Init("_VelocityTarget");
+            _temporaryVelocityTarget = RTHandles.Alloc("_PG_TemporaryVelocityTextureTarget", name: "_PG_TemporaryVelocityTextureTarget");
+            _velocityTarget = RTHandles.Alloc("_VelocityTarget", name: "_VelocityTarget");
+
+            _temporaryVelocityTargetId = Shader.PropertyToID(_temporaryVelocityTarget.name);
+            _velocityTargetId = Shader.PropertyToID(_velocityTarget.name);
 
             _shaderTagIdList.Add(new ShaderTagId("SRPDefaultUnlit"));
             _shaderTagIdList.Add(new ShaderTagId("UniversalForward"));
@@ -71,7 +76,7 @@ namespace Aarthificial.PixelGraphics.Forward
                 _previousPosition = cameraPosition;
 
                 cmd.GetTemporaryRT(
-                    _temporaryVelocityTarget.id,
+                    _temporaryVelocityTargetId,
                     textureWidth,
                     textureHeight,
                     0,
@@ -79,7 +84,7 @@ namespace Aarthificial.PixelGraphics.Forward
                     GraphicsFormat.R16G16B16A16_SFloat
                 );
                 cmd.GetTemporaryRT(
-                    _velocityTarget.id,
+                    _velocityTargetId,
                     textureWidth,
                     textureHeight,
                     0,
@@ -88,8 +93,8 @@ namespace Aarthificial.PixelGraphics.Forward
                 );
 
                 cmd.SetGlobalVector(ShaderIds.CameraPositionDelta, screenDelta / 2);
-                cmd.SetGlobalTexture(ShaderIds.VelocityTexture, _velocityTarget.id);
-                cmd.SetGlobalTexture(ShaderIds.PreviousVelocityTexture, _temporaryVelocityTarget.id);
+                cmd.SetGlobalTexture(ShaderIds.VelocityTexture, _velocityTargetId);
+                cmd.SetGlobalTexture(ShaderIds.PreviousVelocityTexture, _temporaryVelocityTargetId);
                 cmd.SetGlobalVector(ShaderIds.VelocitySimulationParams, _simulationSettings.Value);
                 cmd.SetGlobalVector(
                     ShaderIds.PixelScreenParams,
@@ -101,7 +106,7 @@ namespace Aarthificial.PixelGraphics.Forward
                     )
                 );
 
-                CoreUtils.SetRenderTarget(cmd, _velocityTarget.id);
+                CoreUtils.SetRenderTarget(cmd, _velocityTargetId);
                 cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
                 cmd.SetViewport(new Rect(0, 0, textureWidth, textureHeight));
                 cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, _blitMaterial, 0, 0);
@@ -135,14 +140,14 @@ namespace Aarthificial.PixelGraphics.Forward
                 }
 
                 // TODO Implement proper double buffering
-                cmd.Blit(_velocityTarget.id, _temporaryVelocityTarget.id);
+                cmd.Blit(_velocityTargetId, _temporaryVelocityTargetId);
 #if UNITY_EDITOR
                 if (_passSettings.preview)
-                    cmd.Blit(_velocityTarget.id, colorAttachment);
+                    cmd.Blit(_velocityTargetId, colorAttachmentHandle);
 #endif
-                CoreUtils.SetRenderTarget(cmd, colorAttachment);
-                cmd.ReleaseTemporaryRT(_temporaryVelocityTarget.id);
-                cmd.ReleaseTemporaryRT(_velocityTarget.id);
+                CoreUtils.SetRenderTarget(cmd, colorAttachmentHandle);
+                cmd.ReleaseTemporaryRT(_temporaryVelocityTargetId);
+                cmd.ReleaseTemporaryRT(_velocityTargetId);
             }
 
             context.ExecuteCommandBuffer(cmd);

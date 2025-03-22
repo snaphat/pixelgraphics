@@ -1,6 +1,7 @@
 ﻿using Aarthificial.PixelGraphics.Common;
 using UnityEditor;
 using UnityEngine;
+using RenderingLayerMask = Aarthificial.PixelGraphics.Common.RenderingLayerMask;
 
 namespace Aarthificial.PixelGraphics.Editor.Common
 {
